@@ -148,7 +148,7 @@ cd frontend && npm install && npm run dev           # http://localhost:5173, pro
 | Сбой записи | `P456AT178` / `S-0003` | отказ от выводов, просьба перезаписать |
 | Норма | `M333YK47` / `S-0006` | эксплуатация допустима, заявки нет |
 | Вне базы знаний | любой | «В базе знаний нет данных…» вместо выдумки |
-| Парк | вкладка «Парк» | 25 / 6 / 19, карантин, переход к ТС |
+| Парк | вкладка «Парк» | 50 ТС: 25 норма / 6 внимание / 19 карантин, переход к ТС |
 
 ## Структура
 
@@ -156,12 +156,18 @@ cd frontend && npm install && npm run dev           # http://localhost:5173, pro
 backend/app/agent.py        цикл tool calling, правила, валидация заявки
 backend/app/rag/            извлечение PDF, чанки, BM25, реестр руководств
 backend/app/store.py        SQLite: ТС, проверки, сообщения, заявки
-backend/scripts/            ingest.py, search.py, agent_cli.py
+backend/scripts/            ingest.py, search.py, agent_cli.py, eval_rag.py, smoke.py
+backend/eval/               контрольный набор вопросов для оценки поиска
+backend/tests/              тесты поиска, границ страниц и валидации заявки
 frontend/src/               React-интерфейс механика
 mocks/                      Mock ML и Mock ТОиР (стенды организаторов)
 data/                       синтетические данные хакатона
 deploy/                     entrypoint и срез Caddy
+docs/                       архитектура, выбор модели, деплой, качество RAG, план
 ```
+
+Документация: [архитектура](docs/architecture.md) · [выбор модели](docs/model-choice.md) ·
+[качество RAG](docs/rag-quality.md) · [деплой](docs/deploy.md) · [план и статус](docs/plan.md).
 
 ## Ограничения
 
