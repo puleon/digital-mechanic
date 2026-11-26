@@ -77,6 +77,8 @@ def main() -> int:
     reply = chat(base, vehicle, session, question, conversation)
     reply_text = reply["reply"]
     check("rag: search_manuals вызван", "search_manuals" in tool_names(reply))
+    check("rag: заявка не создаётся на технический вопрос",
+          "create_ticket" not in tool_names(reply), ", ".join(tool_names(reply)))
     found = CITE_RE.search(reply_text)
     check("rag: есть ссылка на страницу", bool(found),
           f"стр. {found.group(1)}, {reply['_seconds']} с" if found else f"{reply['_seconds']} с")
