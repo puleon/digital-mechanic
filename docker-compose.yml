@@ -1,0 +1,42 @@
+name: digital-mechanic
+
+services:
+  api:
+    build: .
+    image: digital-mechanic:local
+    restart: unless-stopped
+    entrypoint: ["/app/deploy/entrypoint.sh"]
+    env_file: .env
+    environment:
+      DATA_DIR: /app/data
+      MANUALS_DIR: /app/manuals
+      MOCK_ML_URL: http://mock_ml:8001
+      MOCK_TOIR_URL: http://mock_toir:8002
+    ports:
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - ./data:/app/data
+      - ./manuals:/app/manuals:ro
+    depends_on:
+      - mock_ml
+      - mock_toir
+
+  mock_ml:
+    image: digital-mechanic:local
+    restart: unless-stopped
+    command:
+      ["uvicorn", "mock_ml.app:app", "--app-dir", "/app/mocks", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      MOCK_DATA_PATH: /app/data/vehicles.json
+    volumes:
+      - ./data:/app/data:ro
+
+  mock_toir:
+    image: digital-mechanic:local
+    restart: unless-stopped
+    command:
+      ["uvicorn", "mock_toir.app:app", "--app-dir", "/app/mocks", "--host", "0.0.0.0", "--port", "8002"]
+    environment:
+      MOCK_DATA_PATH: /app/data/vehicles.json
+    volumes:
+      - ./data:/app/data:ro

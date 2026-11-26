@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react'
 
 function inline(text: string, keyPrefix: string): ReactNode[] {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g)
-  return parts.map((part, index) =>
-    part.startsWith('**') && part.endsWith('**') ? (
-      <strong key={`${keyPrefix}-${index}`}>{part.slice(2, -2)}</strong>
-    ) : (
-      <span key={`${keyPrefix}-${index}`}>{part}</span>
-    ),
-  )
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={`${keyPrefix}-${index}`}>{part.slice(2, -2)}</strong>
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <code key={`${keyPrefix}-${index}`}>{part.slice(1, -1)}</code>
+    }
+    return <span key={`${keyPrefix}-${index}`}>{part}</span>
+  })
 }
 
 /** Минимальный рендер markdown-подобного текста агента: заголовки, списки, жирный. */

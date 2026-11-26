@@ -162,6 +162,9 @@ class AgentContext:
         self.session_id = session_id
         self.engine_model: str = vehicle["engine_model"]
         self.vehicle_id: str = vehicle["vehicle_id"]
+        # Страницы, реально показанные агенту поиском в рамках этого запроса.
+        # Заявка может ссылаться только на них — защита от выдуманных ссылок.
+        self.seen_pages: set[tuple[str, int]] = set()
 
     def describe(self) -> str:
         v = self.vehicle
@@ -185,6 +188,7 @@ async def _exec(name: str, args: dict, ctx: AgentContext) -> dict:
         hits = rag.search(query, ctx.engine_model, top_k=6)
         if not hits:
             return {"results": [], "note": f"В руководствах для {ctx.engine_model} ничего не найдено"}
+        ctx.seen_pages.update((hit["manual"], hit["pdf_page"]) for hit in hits)
         return {
             "engine_model": ctx.engine_model,
             "results": hits,
@@ -244,6 +248,12 @@ async def _create_ticket(args: dict, ctx: AgentContext) -> dict:
         pages = rag.manual_page_count(manual)
         if page < 1 or (pages and page > pages):
             raise ToolError(f"Страницы {page} нет в документе «{manual}»")
+        if (manual, page) not in ctx.seen_pages:
+            raise ToolError(
+                f"Страница {page} документа «{manual}» не встречалась в результатах поиска "
+                "в этом запросе. Сначала найди её через search_manuals и ссылайся только "
+                "на страницы из выдачи."
+            )
         clean_refs.append({"manual": manual, "pdf_page": page})
 
     payload = {

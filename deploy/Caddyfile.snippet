@@ -1,0 +1,10 @@
+# Добавить этот блок в /etc/caddy/Caddyfile и выполнить:
+#   sudo caddy validate --config /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# Caddy сам получит сертификат Let's Encrypt для домена sslip.io.
+
+digital-mechanic.128-0-134-250.sslip.io {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8090
+}

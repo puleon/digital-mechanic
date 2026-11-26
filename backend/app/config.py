@@ -24,6 +24,6 @@ INDEX_DIR = DATA_DIR / "index"
 MOCK_ML_URL = os.getenv("MOCK_ML_URL", "http://127.0.0.1:8001").rstrip("/")
 MOCK_TOIR_URL = os.getenv("MOCK_TOIR_URL", "http://127.0.0.1:8002").rstrip("/")
 
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.proxiapi.ru/v1")
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.proxyapi.ru/v1")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "deepseek1017")
+LLM_MODEL = os.getenv("LLM_MODEL", "deepseek/deepseek-v4.1-flash-1017")
