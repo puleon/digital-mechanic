@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+
+# PDFs are customer property: never commit them.
+manuals/*.pdf
+manuals/
+data/index/
+data/app.db
+node_modules/
+dist/
