@@ -5,14 +5,24 @@
 """
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 from typing import Any
 
-from openai import AsyncOpenAI
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
+    AsyncOpenAI,
+    RateLimitError,
+)
 
 from . import clients, store
 from .config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 from .rag import tools as rag
+
+log = logging.getLogger(__name__)
 
 MAX_STEPS = 8
 
@@ -278,6 +288,24 @@ def _client() -> AsyncOpenAI:
     return AsyncOpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL, timeout=90)
 
 
+async def _chat(client: AsyncOpenAI, **kwargs):
+    """Запрос к LLM с повторами на временных сбоях (лимиты, 5xx, сеть)."""
+    delay = 1.5
+    for attempt in range(3):
+        try:
+            return await client.chat.completions.create(**kwargs)
+        except (RateLimitError, APITimeoutError, APIConnectionError) as exc:
+            if attempt == 2:
+                raise
+            log.warning("LLM временно недоступна (%s), повтор через %.1f с", type(exc).__name__, delay)
+        except APIStatusError as exc:
+            if exc.status_code < 500 or attempt == 2:
+                raise
+            log.warning("LLM вернула %s, повтор через %.1f с", exc.status_code, delay)
+        await asyncio.sleep(delay)
+        delay *= 2
+
+
 async def run_agent(
     vehicle: dict,
     session_id: str,
@@ -297,7 +325,8 @@ async def run_agent(
     client = _client()
     content = ""
     for _ in range(MAX_STEPS):
-        response = await client.chat.completions.create(
+        response = await _chat(
+            client,
             model=model or LLM_MODEL,
             messages=messages,
             tools=TOOLS,

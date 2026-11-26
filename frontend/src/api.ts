@@ -7,7 +7,14 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   })
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(text || `HTTP ${response.status}`)
+    let detail = text
+    try {
+      const parsed = JSON.parse(text) as { detail?: unknown }
+      if (typeof parsed.detail === 'string') detail = parsed.detail
+    } catch {
+      // не JSON — показываем как есть
+    }
+    throw new Error(detail || `HTTP ${response.status}`)
   }
   return response.json() as Promise<T>
 }

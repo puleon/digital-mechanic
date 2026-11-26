@@ -1,6 +1,7 @@
 """HTTP API приложения."""
 from __future__ import annotations
 
+import logging
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -13,6 +14,8 @@ from pydantic import BaseModel, Field
 
 from . import agent, store
 from .config import ROOT
+
+log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -74,13 +77,19 @@ async def chat(req: ChatRequest):
     if not session:
         raise HTTPException(404, "session_id not found for this vehicle")
     conversation_id = req.conversation_id or f"c-{uuid.uuid4().hex[:8]}"
-    result = await agent.run_agent(
-        vehicle=vehicle,
-        session_id=req.session_id,
-        message=req.message,
-        conversation_id=conversation_id,
-        model=req.model,
-    )
+    try:
+        result = await agent.run_agent(
+            vehicle=vehicle,
+            session_id=req.session_id,
+            message=req.message,
+            conversation_id=conversation_id,
+            model=req.model,
+        )
+    except Exception as exc:  # noqa: BLE001 — наружу отдаём понятную ошибку, детали в лог
+        log.exception("сбой обработки сообщения (%s)", req.vehicle_id)
+        raise HTTPException(
+            503, "Модель недоступна. Попробуйте ещё раз через минуту."
+        ) from exc
     result["conversation_id"] = conversation_id
     return result
 
