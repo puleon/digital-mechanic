@@ -16,11 +16,13 @@ pytestmark = pytest.mark.skipif(
 MANUAL = "236.01.01 РК"
 
 
-def make_ctx(seen: set[tuple[str, int]] | None = None) -> agent.AgentContext:
+def make_ctx(seen: set[tuple[str, int]] | None = None,
+             message: str = "Оформи заявку на дефектовку") -> agent.AgentContext:
     ctx = agent.AgentContext(
         {"vehicle_id": "S-0009", "garage_no": "А-001", "make": "МАЗ", "model": "5337",
          "engine_model": "ЯМЗ-236М2", "fuel": "ДТ"},
         "S-0009",
+        user_message=message,
     )
     ctx.seen_pages = seen or set()
     return ctx
@@ -95,6 +97,32 @@ def test_ticket_requires_anomaly_status(monkeypatch):
     )
     with pytest.raises(agent.ToolError, match="только при отклонении"):
         run(ARGS, make_ctx({(MANUAL, 269)}))
+
+
+def test_technical_question_cannot_create_ticket(anomaly):
+    ctx = make_ctx({(MANUAL, 269)}, message="С каким моментом затягивать болты осей коромысел?")
+    with pytest.raises(agent.ToolError, match="не просил оформлять заявку"):
+        run(ARGS, ctx)
+    assert "payload" not in anomaly
+
+
+@pytest.mark.parametrize("text", [
+    "Оформи заявку на дефектовку",
+    "создай заявку",
+    "передай в ТОиР",
+    "нужна дефектовка",
+])
+def test_ticket_requests_are_recognised(text):
+    assert agent._asks_for_ticket(text)
+
+
+@pytest.mark.parametrize("text", [
+    "С каким моментом затягивать гайки головок?",
+    "Почему это опасно?",
+    "Что проверить по руководству?",
+])
+def test_technical_questions_are_not_ticket_requests(text):
+    assert not agent._asks_for_ticket(text)
 
 
 def test_empty_operations_rejected(anomaly):

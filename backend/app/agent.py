@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from typing import Any
 
 from openai import (
@@ -170,10 +171,19 @@ class ToolError(RuntimeError):
     pass
 
 
+# Просьба о заявке — проверяется на сервере, чтобы модель не создавала её «на всякий случай»
+TICKET_INTENT = re.compile(r"заявк|дефектов|тоир|оформ|созда", re.I)
+
+
+def _asks_for_ticket(message: str) -> bool:
+    return bool(TICKET_INTENT.search(message or ""))
+
+
 class AgentContext:
-    def __init__(self, vehicle: dict, session_id: str):
+    def __init__(self, vehicle: dict, session_id: str, user_message: str = ""):
         self.vehicle = vehicle
         self.session_id = session_id
+        self.user_message = user_message
         self.engine_model: str = vehicle["engine_model"]
         self.vehicle_id: str = vehicle["vehicle_id"]
         # Страницы, реально показанные агенту поиском в рамках этого запроса.
@@ -226,6 +236,11 @@ async def _exec(name: str, args: dict, ctx: AgentContext) -> dict:
 
 
 async def _create_ticket(args: dict, ctx: AgentContext) -> dict:
+    if not _asks_for_ticket(ctx.user_message):
+        raise ToolError(
+            "Механик не просил оформлять заявку. Ответь на вопрос текстом; создавай "
+            "заявку только по прямой просьбе («оформи заявку», «передай в ТОиР»)."
+        )
     diag = store.get_session(ctx.vehicle_id, ctx.session_id)
     if not diag:
         raise ToolError("Нет данных проверки для этой заявки")
@@ -317,7 +332,7 @@ async def run_agent(
     conversation_id: str,
     model: str | None = None,
 ) -> dict:
-    ctx = AgentContext(vehicle, session_id)
+    ctx = AgentContext(vehicle, session_id, user_message=message)
     store.add_message(conversation_id, vehicle["vehicle_id"], "user", message)
 
     messages: list[dict] = [
